@@ -1,0 +1,67 @@
+# docker-compose.yml
+version: '3'
+
+services:
+  api:
+    build: ./api
+    ports:
+      - "${API_PORT}:${API_PORT}"
+    depends_on:
+      - db
+    networks:
+      - ${APP_NETWORK}
+    volumes:
+      - api_data:/var/lib/api_temp
+      - ./logs/api:/var/log/api
+      
+
+  client:
+    build: ./client
+    ports:
+      - "${CLIENT_PORT}:${CLIENT_PORT}"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+      - ./client/src:/app/src
+    environment:
+      - REACT_APP_API_URL=${API_URL}
+    networks:
+      - ${APP_NETWORK}
+
+
+  db:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ${DB_INIT_SCRIPT}:/docker-entrypoint-initdb.d/init.sql
+      - ./logs/mysql:/var/log/mysql
+    networks:
+      - ${APP_NETWORK}
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      PMA_HOST: ${PMA_HOST}
+      PMA_PASSWORD: ${PMA_PASSWORD}
+    ports:
+      - "${PMA_PORT}:80"
+    depends_on:
+      - db
+    networks:
+      - ${APP_NETWORK}
+
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  api_data:
+  db_data:
